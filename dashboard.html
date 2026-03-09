@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings | NexStay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-contacted { background: #d1fae5; color: #059669; }
+
+        .lead-detail {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .lead-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="home"></i>
+                <span>NexStay</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <div style="display:flex; align-items:center; gap:1rem; margin-left: 1rem;">
+                    <span style="font-weight:600; color:var(--text-main);" id="userNameDisplay">User</span>
+                    <button class="btn btn-primary-outline" style="padding:0.25rem 0.75rem;" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container" style="min-height: 80vh;">
+        <div class="admin-header">
+            <div>
+                <h1 style="font-size: 2rem; color: var(--text-dark);">My Bookings</h1>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">Track the status of your property inquiries.</p>
+            </div>
+        </div>
+
+        <div class="dashboard-card" style="margin-bottom: 3rem;">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Property Interested In</th>
+                            <th>Location</th>
+                            <th>Date Requested</th>
+                            <th>Owner Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inquiriesTableBody">
+                        <tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading your bookings...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo">
+                    <i data-lucide="home"></i>
+                    <span>NexStay</span>
+                </div>
+                <p style="color: var(--text-muted); margin-top: 1rem;">Modern living spaces for students and professionals.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('auth_token');
+            const role = localStorage.getItem('user_role');
+            
+            if(!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            document.getElementById('userNameDisplay').textContent = "Hi, " + localStorage.getItem('user_name');
+
+            // Fetch specific user's inquiries
+            const inquiries = await fetchUserInquiries();
+            renderInquiries(inquiries);
+        });
+
+        async function fetchUserInquiries() {
+            try {
+                const response = await fetch(`${API_URL}/user/inquiries`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                });
+                if(!response.ok) return [];
+                return await response.json();
+            } catch (e) {
+                console.error("Error fetching user inquiries", e);
+                return [];
+            }
+        }
+
+        function renderInquiries(inquiries) {
+            const tbody = document.getElementById('inquiriesTableBody');
+            tbody.innerHTML = '';
+            
+            if(inquiries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 3rem; color: var(--text-muted);">You have not requested any bookings yet. Head to the homepage to find a property!</td></tr>';
+                return;
+            }
+
+            inquiries.forEach(inq => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="lead-detail">
+                            <img src="${inq.image}" class="lead-img" alt="pg">
+                            <span style="font-weight: 500;">${inq.title}</span>
+                        </div>
+                    </td>
+                    <td>${inq.location}, ${inq.city}</td>
+                    <td>${inq.date}</td>
+                    <td>
+                        <span class="status-badge ${inq.status === 'pending' ? 'status-pending' : 'status-contacted'}">
+                            ${inq.status === 'pending' ? 'Awaiting Callback' : 'Owner Contacted'}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

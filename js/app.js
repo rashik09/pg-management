@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(token) {
         if(role === 'owner') {
             navLinks.innerHTML += `<a href="admin.html" class="btn btn-primary-outline">Dashboard</a>`;
+        } else {
+            navLinks.innerHTML += `<a href="dashboard.html" class="btn btn-primary-outline">My Bookings</a>`;
         }
         navLinks.innerHTML += `
             <div style="display:flex; align-items:center; gap:1rem; margin-left: 1rem;">
@@ -20,13 +22,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         navLinks.innerHTML += `<a href="login.html" class="btn btn-primary">Sign In</a>`;
     }
 
-    // 1. Fetch & Render Featured PGs
+    // 1. Initial Load of all active PGs
     const allPGs = await getPGs();
-    const featured = allPGs.filter(p => p.featured && p.status === 'active');
-    renderPGs(featured, 'featuredGrid');
+    const activePGs = allPGs.filter(p => p.status === 'active');
+    
+    // Render all to main search grid initially
+    renderPGs(activePGs, 'mainPgGrid');
+    
+    // Update count
+    const countEl = document.getElementById('resultsCount');
+    if(countEl) countEl.textContent = `Showing ${activePGs.length} properties`;
 
-    // 2. Setup Location Detection (OLX Style)
-    setupLocation(allPGs);
+    // 2. Setup Advanced Filtering Logic
+    setupFilters(activePGs);
 });
 
 function renderPGs(pgList, containerId) {
@@ -83,65 +91,199 @@ function renderPGs(pgList, containerId) {
     if(typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-function setupLocation(allPGs) {
-    const picker = document.getElementById('locationPicker');
-    const userLocText = document.getElementById('userLocationText');
-    const nearbyName = document.getElementById('nearbyLocationName');
-    const nearbyGrid = document.getElementById('nearbyGrid');
+function setupFilters(allPGs) {
+    const applyBtn = document.getElementById('applyFiltersBtn');
+    const clearBtn = document.getElementById('clearFiltersBtn');
+    const budgetSlider = document.getElementById('filterBudget');
+    const budgetDisplay = document.getElementById('budgetDisplay');
+    const resultsCount = document.getElementById('resultsCount');
+    const gridId = 'mainPgGrid';
+
+    // Top Header Search integration (Quick search)
     const searchBtn = document.getElementById('searchBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // Simulate Location Fetching (OLX Style)
-    setTimeout(() => {
-        const defaultCity = "Bangalore"; 
-        if(userLocText) userLocText.textContent = defaultCity;
-        if(nearbyName) nearbyName.textContent = `in ${defaultCity}`;
-        
-        const nearby = allPGs.filter(p => p.city === defaultCity && p.status === 'active');
-        renderPGs(nearby, 'nearbyGrid');
-    }, 1500);
+    if(!applyBtn || !allPGs) return;
 
-    // Location picker mock interaction
-    if(picker) {
-        picker.addEventListener('click', async () => {
-            const newCity = prompt("Enter your city to find PGs (e.g., Mumbai, Bangalore, Hyderabad):", userLocText.textContent);
-            if(newCity && newCity.trim() !== '') {
-                userLocText.textContent = newCity.trim();
-                nearbyName.textContent = `in ${newCity.trim()}`;
-                
-                // Fetch fresh PGs to filter
-                const freshPGs = await getPGs();
-                const nearby = freshPGs.filter(p => p.city.toLowerCase() === newCity.trim().toLowerCase() && p.status === 'active');
-                renderPGs(nearby, 'nearbyGrid');
-                document.getElementById('nearbySection').scrollIntoView({behavior: 'smooth'});
+    // Live update the budget slider display text
+    budgetSlider.addEventListener('input', (e) => {
+        budgetDisplay.textContent = `₹${parseInt(e.target.value).toLocaleString()}`;
+    });
+
+    // Core Filtering Engine
+    function applyFilters(searchQuery = "") {
+        const location = document.getElementById('filterLocation').value.toLowerCase();
+        const maxBudget = parseInt(budgetSlider.value);
+        const type = document.getElementById('filterType').value;
+        const sharing = document.getElementById('filterSharing').value;
+
+        const filtered = allPGs.filter(pg => {
+            // Check individual constraints
+            const matchLoc = !location || pg.city.toLowerCase() === location || pg.location.toLowerCase().includes(location);
+            const matchBudget = pg.price <= maxBudget;
+            const matchType = !type || pg.type === type;
+            const matchSharing = !sharing || pg.sharing_type === sharing;
+            const matchSearch = !searchQuery || 
+                                pg.title.toLowerCase().includes(searchQuery) || 
+                                pg.location.toLowerCase().includes(searchQuery) ||
+                                pg.city.toLowerCase().includes(searchQuery);
+
+            return matchLoc && matchBudget && matchType && matchSharing && matchSearch;
+        });
+
+        // Render Results
+        renderPGs(filtered, gridId);
+        if(resultsCount) resultsCount.textContent = `Showing ${filtered.length} properties`;
+        
+        // Scroll down to results smoothly
+        document.getElementById('search').scrollIntoView({behavior: 'smooth'});
+    }
+
+    // Attach to Apply Filter click
+    applyBtn.addEventListener('click', () => applyFilters());
+
+    // Attach to clear filter click
+    clearBtn.addEventListener('click', () => {
+        document.getElementById('filterLocation').value = "";
+        budgetSlider.value = 20000;
+        budgetDisplay.textContent = "₹20,000";
+        document.getElementById('filterType').value = "";
+        document.getElementById('filterSharing').value = "";
+        if(searchInput) searchInput.value = "";
+        applyFilters();
+    });
+
+    // Quick Search integration into Advanced Grid
+    if(searchBtn && searchInput) {
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            document.getElementById('filterLocation').value = ""; // Clear explicit dropdown to allow search to override
+            applyFilters(query);
+        });
+        
+        // Trigger on Enter Key
+        searchInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') {
+                if (document.getElementById('autocompleteDropdown')) document.getElementById('autocompleteDropdown').style.display = 'none';
+                searchBtn.click();
+            }
+        });
+
+        // Autocomplete Logic
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        const uniqueCities = [...new Set(allPGs.map(pg => pg.city.trim()))].filter(Boolean);
+
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            autocompleteDropdown.innerHTML = '';
+            if (!val) {
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+
+            const matches = uniqueCities.filter(c => c.toLowerCase().includes(val));
+            
+            if (matches.length > 0) {
+                matches.forEach(city => {
+                    const div = document.createElement('div');
+                    div.style.padding = '0.75rem 1rem';
+                    div.style.cursor = 'pointer';
+                    div.style.borderBottom = '1px solid var(--border)';
+                    div.style.color = 'var(--text-main)';
+                    div.innerHTML = `<i data-lucide="map-pin" style="width:16px; height:16px; margin-right:0.5rem; color:var(--text-muted); vertical-align:middle;"></i>${city}`;
+                    
+                    div.onmouseover = () => div.style.background = 'var(--bg-light)';
+                    div.onmouseout = () => div.style.background = 'white';
+                    
+                    div.onclick = () => {
+                        searchInput.value = city;
+                        autocompleteDropdown.style.display = 'none';
+                        
+                        // Sync with sidebar filter if possible
+                        const filterLoc = document.getElementById('filterLocation');
+                        let optionExists = Array.from(filterLoc.options).some(opt => opt.value.toLowerCase() === city.toLowerCase());
+                        if (optionExists) {
+                            filterLoc.value = Array.from(filterLoc.options).find(opt => opt.value.toLowerCase() === city.toLowerCase()).value;
+                            applyFilters();
+                        } else {
+                            filterLoc.value = ""; // clear restrictive sidebar if not matching exactly
+                            applyFilters(city.toLowerCase());
+                        }
+                    };
+                    autocompleteDropdown.appendChild(div);
+                });
+                autocompleteDropdown.style.display = 'block';
+                if(window.lucide) lucide.createIcons();
+            } else {
+                autocompleteDropdown.style.display = 'none';
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (autocompleteDropdown && !searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                autocompleteDropdown.style.display = 'none';
             }
         });
     }
 
-    // Search functionality
-    if(searchBtn && searchInput) {
-        searchBtn.addEventListener('click', async () => {
-            const query = searchInput.value.toLowerCase();
-            if(query) {
-                nearbyName.textContent = `matching "${query}"`;
-                const freshPGs = await getPGs();
-                const results = freshPGs.filter(p => 
-                    p.status === 'active' && 
-                    (p.title.toLowerCase().includes(query) || 
-                     p.location.toLowerCase().includes(query) || 
-                     p.city.toLowerCase().includes(query))
-                );
-                renderPGs(results, 'nearbyGrid');
-                document.getElementById('nearbySection').scrollIntoView({behavior: 'smooth'});
+    // Geolocation Logic
+    const locationBtn = document.getElementById('locationBtn');
+    if (locationBtn) {
+        locationBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                window.showToast("Geolocation is not supported by your browser", "error");
+                return;
             }
+
+            locationBtn.innerHTML = `<i data-lucide="loader-2" style="width: 20px; height: 20px; animation: spin 1s linear infinite;"></i>`;
+            if(window.lucide) lucide.createIcons();
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                try {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                    const data = await res.json();
+                    
+                    const city = data.address.city || data.address.town || data.address.village || data.address.state_district;
+                    
+                    if (city) {
+                        searchInput.value = city;
+                        window.showToast(`Location detected: ${city}`, "success");
+                        
+                        const filterLoc = document.getElementById('filterLocation');
+                        let optionExists = Array.from(filterLoc.options).some(opt => opt.value.toLowerCase() === city.toLowerCase());
+                        if (optionExists) {
+                            filterLoc.value = Array.from(filterLoc.options).find(opt => opt.value.toLowerCase() === city.toLowerCase()).value;
+                            applyFilters();
+                        } else {
+                            filterLoc.value = "";
+                            applyFilters(city.toLowerCase());
+                        }
+                    } else {
+                        window.showToast("Could not determine city from location", "error");
+                    }
+                } catch(e) {
+                    console.error("Geocoding error", e);
+                    window.showToast("Failed to fetch location details", "error");
+                } finally {
+                    locationBtn.innerHTML = `<i data-lucide="locate" style="width: 20px; height: 20px;"></i>`;
+                    if(window.lucide) lucide.createIcons();
+                }
+            }, (error) => {
+                window.showToast("Location access denied or unavailable", "error");
+                locationBtn.innerHTML = `<i data-lucide="locate" style="width: 20px; height: 20px;"></i>`;
+                if(window.lucide) lucide.createIcons();
+            });
         });
     }
 }
 
 window.bookRoom = function(pgId, pgTitle) {
     if(!localStorage.getItem('auth_token')) {
-        alert("Please sign in or register to book a property.");
-        window.location.href = 'login.html';
+        window.showToast("Please sign in or register to book a property.", "error", "login.html");
         return;
     }
     
@@ -180,7 +322,7 @@ window.submitBooking = async function(e) {
         document.getElementById('bookFormContainer').style.display = 'none';
         document.getElementById('bookSuccessContainer').style.display = 'block';
     } else {
-        alert("There was an error sending your inquiry. Please ensure the backend is running.");
+        window.showToast("There was an error sending your inquiry. Please ensure the backend is running.", "error");
     }
     
     submitBtn.disabled = false;

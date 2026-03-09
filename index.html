@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body style="overflow-x: hidden;">
     <nav class="navbar glass">
         <div class="nav-container">
             <a href="index.html" class="logo">
@@ -32,38 +32,101 @@
                 <h1>Find a PG that feels like <span class="highlight">Home</span></h1>
                 <p>Discover premium paying guest accommodations near you with top-tier amenities.</p>
                 
-                <div class="search-glass">
-                    <div class="location-picker" id="locationPicker">
-                        <i data-lucide="map-pin"></i>
-                        <span id="userLocationText">Detecting location...</span>
-                    </div>
-                    <div class="search-divider"></div>
-                    <div class="search-input-wrapper">
+                <div class="search-glass" style="position: relative;">
+                    <div class="search-input-wrapper" style="width: 100%;">
                         <i data-lucide="search"></i>
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search by city, college, or neighborhood...">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search by city, college, or neighborhood..." autocomplete="off">
                     </div>
+                    <button class="btn btn-primary-outline" id="locationBtn" title="Use Current Location" style="border:none; padding: 0.5rem; margin-right: 0.5rem; color: var(--text-muted);">
+                        <i data-lucide="locate" style="width: 20px; height: 20px;"></i>
+                    </button>
                     <button class="btn btn-primary" id="searchBtn">Find Rooms</button>
+                    
+                    <!-- Autocomplete Dropdown -->
+                    <div id="autocompleteDropdown" style="display: none; position: absolute; top: 110%; left: 0; width: 100%; background: white; border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); overflow: hidden; z-index: 100; text-align: left; max-height: 250px; overflow-y: auto;">
+                        <!-- dynamic items -->
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="pg-section" id="nearbySection">
-            <div class="section-header">
-                <h2>PGs Near You <span class="location-tag" id="nearbyLocationName"></span></h2>
-                <a href="#" class="view-all">View All <i data-lucide="arrow-right"></i></a>
+        <section class="pg-section" id="search" style="padding-top: 5rem;">
+            <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+                <h2>Find Your Perfect Room</h2>
+                <p class="subtitle">Use advanced filters to narrow down your search</p>
             </div>
-            <div class="pg-grid" id="nearbyGrid">
-                <!-- Populated by JS -->
-            </div>
-        </section>
 
-        <section class="pg-section dark-bg">
-            <div class="section-header">
-                <h2>Featured Properties</h2>
-                <p class="subtitle">Hand-picked premium spaces across the country</p>
-            </div>
-            <div class="pg-grid" id="featuredGrid">
-                <!-- Populated by JS -->
+            <div class="search-layout" style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
+                
+                <!-- FILTER SIDEBAR -->
+                <aside class="filter-sidebar" style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border); position: sticky; top: 100px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.1rem; font-weight: 600;">Filters</h3>
+                        <button class="btn" style="background: none; color: var(--primary); padding: 0; font-size: 0.9rem;" id="clearFiltersBtn">Clear All</button>
+                    </div>
+
+                    <!-- Location Filter -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">City / Location</label>
+                        <select id="filterLocation" class="form-control" style="width: 100%;">
+                            <option value="">All Locations</option>
+                            <option value="Bangalore">Bangalore</option>
+                            <option value="Mumbai">Mumbai</option>
+                            <option value="Hyderabad">Hyderabad</option>
+                            <option value="Pune">Pune</option>
+                            <option value="Delhi">Delhi</option>
+                        </select>
+                    </div>
+
+                    <!-- Budget Filter -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">
+                            <span>Max Budget</span>
+                            <span id="budgetDisplay">₹20,000</span>
+                        </label>
+                        <input type="range" id="filterBudget" min="5000" max="30000" step="1000" value="20000" style="width: 100%; accent-color: var(--primary);">
+                    </div>
+
+                    <!-- PG Type -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">Tenant Type</label>
+                        <select id="filterType" class="form-control" style="width: 100%;">
+                            <option value="">Any</option>
+                            <option value="Boys">Boys Only</option>
+                            <option value="Girls">Girls Only</option>
+                            <option value="Co-ed">Co-ed</option>
+                        </select>
+                    </div>
+
+                    <!-- Sharing Type -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">Occupancy</label>
+                        <select id="filterSharing" class="form-control" style="width: 100%;">
+                            <option value="">Any</option>
+                            <option value="1 Sharing">Private Room</option>
+                            <option value="2 Sharing">Double Sharing</option>
+                            <option value="3 Sharing">Triple Sharing</option>
+                            <option value="4 Sharing">Four Sharing</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" id="applyFiltersBtn" style="width: 100%; justify-content: center;">Apply Filters</button>
+                </aside>
+
+                <!-- RESULTS GRID -->
+                <div class="search-results">
+                    <!-- Dynamic Headers for Filter States -->
+                    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 id="resultsHeading" style="font-size: 1.5rem;">Recommended For You</h2>
+                        <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+                    </div>
+
+                    <!-- Unified Grid container. We render both local & featured here, or filtered sets here -->
+                    <div class="pg-grid" id="mainPgGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
             </div>
         </section>
     </main>

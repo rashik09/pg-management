@@ -1,5 +1,5 @@
 // auth.js
-const API_URL = 'http://127.0.0.1:5000/api';
+// API_URL and showToast provided by data.js
 
 function setRole(role) {
     document.getElementById('currentRole').value = role;
@@ -40,10 +40,7 @@ function toggleMode() {
 }
 
 function showError(msg) {
-    const err = document.getElementById('errorMsg');
-    err.textContent = msg;
-    err.style.display = 'block';
-    setTimeout(() => err.style.display = 'none', 5000);
+    window.showToast(msg, 'error');
 }
 
 async function handleAuth(e) {
@@ -68,7 +65,7 @@ async function handleAuth(e) {
             const data = await res.json();
             
             if(res.ok) {
-                alert("Account created successfully!");
+                window.showToast("Account created successfully!", "success");
                 
                 // Auto login after successful registration
                 const loginRes = await fetch(`${API_URL}/auth/login`, {
@@ -91,7 +88,7 @@ async function handleAuth(e) {
                 }
             } else {
                 if (data.message === "User already exists" || res.status === 400 || res.status === 409) {
-                    alert("Account already exists");
+                    window.showToast("Account already exists", "error");
                 } else {
                     showError(data.message || 'Registration failed');
                 }

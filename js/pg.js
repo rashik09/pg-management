@@ -92,8 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Reusing identical Modal Booking Logic from app.js for standalone page integration
 window.bookRoom = function(pgId, pgTitle) {
     if(!localStorage.getItem('auth_token')) {
-        alert("Please sign in or register to book a property.");
-        window.location.href = 'login.html';
+        window.showToast("Please sign in or register to book a property.", "error", "login.html");
         return;
     }
     document.getElementById('bookFormContainer').style.display = 'block';
@@ -125,7 +124,7 @@ window.submitBooking = async function(e) {
         document.getElementById('bookFormContainer').style.display = 'none';
         document.getElementById('bookSuccessContainer').style.display = 'block';
     } else {
-        alert("There was an error sending your inquiry. Please ensure the backend is running.");
+        window.showToast("There was an error sending your inquiry. Please ensure the backend is running.", "error");
     }
     submitBtn.disabled = false;
     submitBtn.textContent = 'Send Inquiry';

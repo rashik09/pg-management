@@ -5,7 +5,9 @@ import json
 import os
 import jwt
 import datetime
+import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -13,6 +15,16 @@ CORS(app)
 
 DB_FILE = 'database.db'
 SECRET_KEY = 'super-secret-premium-key-for-nexstay' # In production, use os.environ.get()
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+
+# Ensure uploads directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE)
@@ -59,6 +71,7 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS inquiries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             name TEXT,
             phone TEXT,
             pg_id INTEGER,
@@ -146,6 +159,14 @@ def serve_login():
 @app.route('/admin.html')
 def serve_admin():
     return send_from_directory('.', 'admin.html')
+
+@app.route('/dashboard.html')
+def serve_dashboard():
+    return send_from_directory('.', 'dashboard.html')
+
+@app.route('/uploads/<path:filename>')
+def serve_uploads(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # --- AUTH API ROUTES ---
 @app.route('/api/auth/register', methods=['POST'])
@@ -272,7 +293,33 @@ def create_pg(current_user):
     conn.close()
     return jsonify({"success": True, "message": "PG added successfully"}), 201
 
-@app.route('/api/pgs/<int:id>', methods=['DELETE'])
+@app.route('/api/pgs/<int:id>', methods=['PUT'])
+@token_required
+@owner_required
+def update_pg(current_user, id):
+    data = request.json
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    gallery_str = json.dumps(data.get('gallery', []))
+    
+    c.execute('''
+        UPDATE properties SET
+            title=?, location=?, city=?, price=?, type=?, image=?,
+            vacancies=?, sharing_type=?, bathroom_type=?,
+            has_ac=?, has_wifi=?, has_hot_water=?, description=?, gallery=?
+        WHERE id=? AND status="active"
+    ''', (
+        data['title'], data['location'], data['city'], int(data['price']),
+        data['type'], data.get('image', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'),
+        int(data['vacancies']), data['sharing_type'], data['bathroom_type'],
+        bool(data.get('has_ac')), bool(data.get('has_wifi')), bool(data.get('has_hot_water')),
+        data.get('description', 'A beautiful remodeled PG property.'), gallery_str,
+        id
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "PG updated successfully"})
 @token_required
 @owner_required
 def delete_pg(current_user, id):
@@ -301,12 +348,31 @@ def create_inquiry(current_user):
     conn = get_db_connection()
     c = conn.cursor()
     c.execute('''
-        INSERT INTO inquiries (name, phone, pg_id, date, status)
-        VALUES (?, ?, ?, ?, 'pending')
-    ''', (dict(current_user)['name'], data['phone'], data['pgId'], data['date'])) # Name pulled from authenticated user!
+        INSERT INTO inquiries (user_id, name, phone, pg_id, date, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+    ''', (dict(current_user)['id'], dict(current_user)['name'], data['phone'], data['pgId'], data['date']))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Inquiry submitted"}), 201
+
+@app.route('/api/user/inquiries', methods=['GET'])
+@token_required
+def get_user_inquiries(current_user):
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Join with properties table so the frontend has PG details (like Title of the booked PG)
+    c.execute('''
+        SELECT i.id, i.date, i.status, p.title, p.location, p.city, p.image 
+        FROM inquiries i
+        JOIN properties p ON i.pg_id = p.id
+        WHERE i.user_id = ?
+        ORDER BY i.id DESC
+    ''', (dict(current_user)['id'],))
+    
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
 
 @app.route('/api/inquiries/<int:id>', methods=['PUT'])
 @token_required
@@ -318,6 +384,33 @@ def update_inquiry(current_user, id):
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Inquiry updated"})
+
+# --- UPLOAD API ROUTE ---
+@app.route('/api/upload', methods=['POST'])
+@token_required
+@owner_required
+def upload_file(current_user):
+    # check if the post request has the file part
+    if 'file' not in request.files:
+        return jsonify({"message": "No file part"}), 400
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({"message": "No selected file"}), 400
+        
+    if file and allowed_file(file.filename):
+        # Prevent file name collisions by prepending a UUID
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
+        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+        file.save(filepath)
+        
+        # Return the public accessible URL
+        public_url = f"/uploads/{unique_name}"
+        return jsonify({"success": True, "url": public_url}), 201
+        
+    return jsonify({"message": "Invalid file type. Only JPG, PNG, WEBP allowed."}), 400
 
 if __name__ == '__main__':
     print("Starting Nexus Stay Secure API Server...")

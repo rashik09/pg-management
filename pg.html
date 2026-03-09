@@ -14,12 +14,12 @@
             display: grid;
             grid-template-columns: 2fr 1fr;
             grid-template-rows: 1fr 1fr;
-            height: clamp(400px, 60vh, 600px);
-            gap: 1rem;
-            margin-top: 2rem;
-            border-radius: 24px;
+            height: clamp(300px, 45vh, 480px);
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            border-radius: 16px;
             overflow: hidden;
-            background: #f3f4f6;
+            background: var(--bg-light);
         }
         .hero-main-img {
             grid-row: 1 / span 2;
@@ -43,9 +43,9 @@
 
         .pg-content-layout {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
-            gap: 3rem;
-            margin-top: 3rem;
+            grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+            gap: 2.5rem;
+            margin-top: 2.5rem;
             margin-bottom: 5rem;
             align-items: start;
         }
@@ -54,7 +54,7 @@
             .pg-hero-grid {
                 grid-template-columns: 1fr;
                 grid-template-rows: 60% 20% 20%;
-                height: 500px;
+                height: 400px;
             }
             .hero-main-img {
                 grid-row: 1 / span 1;
@@ -65,34 +65,53 @@
         }
 
         .pg-details h1 {
-            font-size: 2.5rem;
+            font-size: 2.25rem;
             margin-bottom: 0.5rem;
-            color: var(--text-dark);
+            color: var(--text-main);
+            line-height: 1.2;
         }
 
         .pg-meta-list {
             display: flex;
-            gap: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
             align-items: center;
             color: var(--text-main);
             margin-bottom: 2rem;
             font-weight: 500;
         }
 
+        .pg-meta-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .pg-meta-badge i {
+            color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+
         .pg-description {
             color: var(--text-muted);
-            line-height: 1.8;
-            font-size: 1.1rem;
-            margin-bottom: 3rem;
+            line-height: 1.7;
+            font-size: 1.05rem;
+            margin-bottom: 2.5rem;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 3rem;
+            padding-bottom: 2.5rem;
         }
 
         .amenities-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
         }
 
         .amenity-item {
@@ -101,38 +120,45 @@
             gap: 0.75rem;
             color: var(--text-main);
             font-weight: 500;
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
         }
 
         .amenity-item i {
             color: var(--primary);
+            width: 20px;
+            height: 20px;
         }
 
         .booking-card {
             background: white;
-            border-radius: 20px;
+            border-radius: 16px;
             padding: 2rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             border: 1px solid var(--border);
             position: sticky;
-            top: 100px;
+            top: 120px;
         }
         
         .price-huge {
-            font-size: 2.5rem;
+            font-size: 2.25rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--text-main);
         }
         
         .price-huge span {
             font-size: 1rem;
             color: var(--text-muted);
             font-weight: 400;
+            margin-left: 0.25rem;
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar">
+    <nav class="navbar glass">
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <i data-lucide="home"></i>
@@ -145,14 +171,14 @@
         </div>
     </nav>
 
-    <main class="container" id="loadingContainer" style="min-height: 80vh; display:flex; align-items:center; justify-content:center;">
+    <main class="container" id="loadingContainer" style="padding-top: 6rem; min-height: 80vh; display:flex; align-items:center; justify-content:center;">
         <div style="text-align:center; color:var(--text-muted);">
             <i data-lucide="loader-2" style="animation: spin 2s linear infinite; width:40px; height:40px; margin-bottom:1rem; color:var(--primary);"></i>
             <h2>Loading Property...</h2>
         </div>
     </main>
 
-    <main class="container" id="pgContainer" style="display:none; min-height: 80vh;">
+    <main class="container" id="pgContainer" style="padding-top: 6rem; display:none; min-height: 80vh;">
         <!-- Header -->
         <a href="index.html" style="display:inline-flex; align-items:center; gap:0.5rem; color:var(--text-muted); text-decoration:none; margin-top:2rem; font-weight:500;">
             <i data-lucide="arrow-left" style="width:16px;"></i> Back to search
@@ -221,7 +247,11 @@
         const name = localStorage.getItem('user_name');
 
         if(token) {
-            if(role === 'owner') navLinks.innerHTML += `<a href="admin.html" class="btn btn-primary-outline">Dashboard</a>`;
+            if(role === 'owner') {
+                navLinks.innerHTML += `<a href="admin.html" class="btn btn-primary-outline">Dashboard</a>`;
+            } else {
+                navLinks.innerHTML += `<a href="dashboard.html" class="btn btn-primary-outline">My Bookings</a>`;
+            }
             navLinks.innerHTML += `
                 <div style="display:flex; align-items:center; gap:1rem; margin-left: 1rem;">
                     <span style="font-weight:600; color:var(--text-main);">Hi, ${name}</span>

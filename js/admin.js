@@ -102,15 +102,21 @@ async function renderView(view) {
         content.innerHTML = `
             <div class="section-header" style="margin-bottom: 1.5rem; max-width: 100%; padding: 0;">
                 <h2>Manage Properties</h2>
-                <button class="btn btn-primary" onclick="window.openAddPGModal()">
-                    <i data-lucide="plus"></i> Add New PG
-                </button>
+                <div style="display:flex; gap:1rem;">
+                    <button class="btn btn-primary-outline" id="bulkDeleteBtn" style="color:#EF4444; border-color:#EF4444; display:none;" onclick="triggerBulkDelete()">
+                        <i data-lucide="trash-2"></i> Delete Selected (<span id="selectedCount">0</span>)
+                    </button>
+                    <button class="btn btn-primary" onclick="window.openAddPGModal()">
+                        <i data-lucide="plus"></i> Add New PG
+                    </button>
+                </div>
             </div>
             
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllPgs" onchange="toggleAllPgs(this)"></th>
                             <th>Property</th>
                             <th>Location/City</th>
                             <th>Tenants</th>
@@ -122,6 +128,7 @@ async function renderView(view) {
                     <tbody>
                         ${pgsList.map(pg => `
                             <tr>
+                                <td><input type="checkbox" class="pg-checkbox" value="${pg.id}" onchange="updateBulkDeleteBtn()"></td>
                                 <td style="font-weight: 500;">
                                     ${pg.title}
                                     <div style="font-size:0.75rem; color: #10B981; margin-top:0.2rem;">${pg.vacancies} Vacancies Left</div>
@@ -131,11 +138,14 @@ async function renderView(view) {
                                 <td><span style="font-size:0.8rem; color:var(--text-muted);">${pg.sharing_type} • ${pg.bathroom_type}</span></td>
                                 <td style="font-weight: 600;">₹${pg.price}</td>
                                 <td>
-                                    <button class="btn btn-primary-outline btn-sm" onclick="deletePGHandler(${pg.id})">Delete</button>
+                                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                                        <button class="btn btn-primary-outline btn-sm" onclick="window.openAddPGModal(${pg.id})">Edit</button>
+                                        <button class="btn btn-primary-outline btn-sm" onclick="triggerSingleDelete(${pg.id})" style="color:#EF4444; border-color:#EF4444;">Delete</button>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
-                        ${pgsList.length === 0 ? '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No properties found.</td></tr>' : ''}
+                        ${pgsList.length === 0 ? '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No properties found.</td></tr>' : ''}
                     </tbody>
                 </table>
             </div>
@@ -186,51 +196,118 @@ async function renderView(view) {
     lucide.createIcons();
 }
 
-window.openAddPGModal = function() {
+window.editingPgId = null; // Track edit state
+
+window.openAddPGModal = async function(id = null) {
     document.getElementById('addPgForm').reset();
+    document.querySelector('#addPgModal .modal-header h3').textContent = id ? 'Edit Property' : 'Add New Property';
+    window.editingPgId = id;
+
+    if(id) {
+        try {
+            const res = await fetch(`http://127.0.0.1:5000/api/pgs/${id}`);
+            if(res.ok) {
+                const pg = await res.json();
+                document.getElementById('pgTitle').value = pg.title;
+                document.getElementById('pgLocation').value = pg.location;
+                document.getElementById('pgCity').value = pg.city;
+                document.getElementById('pgPrice').value = pg.price;
+                document.getElementById('pgType').value = pg.type;
+                document.getElementById('pgVacancies').value = pg.vacancies;
+                document.getElementById('pgSharing').value = pg.sharing_type;
+                document.getElementById('pgBathroom').value = pg.bathroom_type;
+                document.getElementById('pgDescription').value = pg.description;
+                document.getElementById('pgAc').checked = pg.has_ac;
+                document.getElementById('pgWifi').checked = pg.has_wifi;
+                document.getElementById('pgHotWater').checked = pg.has_hot_water;
+                
+                // Keep image files optional during edit.
+                document.getElementById('pgImageFile').required = false;
+                document.getElementById('pgGalleryFile').required = false;
+            }
+        } catch(e) { console.error('Error fetching details for edit', e); }
+    } else {
+        document.getElementById('pgImageFile').required = true;
+        document.getElementById('pgGalleryFile').required = true;
+    }
+
     document.getElementById('addPgModal').style.display = 'flex';
 }
 
 window.closeAddPGModal = function() {
     document.getElementById('addPgModal').style.display = 'none';
+    window.editingPgId = null;
 }
 
 window.submitNewPG = async function(e) {
     e.preventDefault();
 
-    // Generate contextual placeholder images
-    const pgType = document.getElementById('pgType').value;
-    let query = 'apartment';
-    if(pgType === 'Boys') query = 'hostel,boys';
-    if(pgType === 'Girls') query = 'bedroom,girls';
-    if(pgType === 'Co-ed') query = 'coliving';
-    
-    const randomId = Math.floor(Math.random() * 1000);
-    const mainImage = `https://source.unsplash.com/800x600/?${query}&sig=${randomId}`;
-    
-    // Synthesize up to 5 additional gallery images
-    const gallery = Array.from({length: 5}, (_, i) => `https://source.unsplash.com/800x600/?${query},interior&sig=${randomId + i + 1}`);
-
-    const data = {
-        title: document.getElementById('pgTitle').value,
-        location: document.getElementById('pgLocation').value,
-        city: document.getElementById('pgCity').value,
-        price: document.getElementById('pgPrice').value,
-        type: pgType,
-        image: mainImage,
-        description: document.getElementById('pgDescription').value,
-        gallery: gallery,
-        vacancies: document.getElementById('pgVacancies').value,
-        sharing_type: document.getElementById('pgSharing').value,
-        bathroom_type: document.getElementById('pgBathroom').value,
-        has_ac: document.getElementById('pgAc').checked,
-        has_wifi: document.getElementById('pgWifi').checked,
-        has_hot_water: document.getElementById('pgHotWater').checked
-    };
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Uploading assets...";
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/pgs', {
-            method: 'POST',
+        let mainImage = '';
+        let galleryUrls = [];
+
+        // Upload new images only if provided
+        const coverInput = document.getElementById('pgImageFile');
+        if(coverInput.files.length > 0) {
+            const formData = new FormData();
+            formData.append('file', coverInput.files[0]);
+            
+            const req = await fetch('http://127.0.0.1:5000/api/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+                body: formData
+            });
+            const res = await req.json();
+            if(req.ok) mainImage = res.url;
+        }
+
+        const galleryInput = document.getElementById('pgGalleryFile');
+        if(galleryInput.files.length > 0) {
+            submitBtn.textContent = `Uploading ${galleryInput.files.length} gallery images...`;
+            for(let i=0; i<galleryInput.files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', galleryInput.files[i]);
+                
+                const req = await fetch('http://127.0.0.1:5000/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+                    body: formData
+                });
+                const res = await req.json();
+                if(req.ok) galleryUrls.push(res.url);
+            }
+        }
+
+        submitBtn.textContent = "Saving Database...";
+
+        const data = {
+            title: document.getElementById('pgTitle').value,
+            location: document.getElementById('pgLocation').value,
+            city: document.getElementById('pgCity').value,
+            price: document.getElementById('pgPrice').value,
+            type: document.getElementById('pgType').value,
+            description: document.getElementById('pgDescription').value,
+            vacancies: document.getElementById('pgVacancies').value,
+            sharing_type: document.getElementById('pgSharing').value,
+            bathroom_type: document.getElementById('pgBathroom').value,
+            has_ac: document.getElementById('pgAc').checked,
+            has_wifi: document.getElementById('pgWifi').checked,
+            has_hot_water: document.getElementById('pgHotWater').checked
+        };
+
+        // Only attach images to payload if new ones were uploaded
+        if(mainImage) data.image = mainImage;
+        if(galleryUrls.length > 0) data.gallery = galleryUrls;
+
+        const url = window.editingPgId ? `http://127.0.0.1:5000/api/pgs/${window.editingPgId}` : 'http://127.0.0.1:5000/api/pgs';
+        const method = window.editingPgId ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -242,17 +319,76 @@ window.submitNewPG = async function(e) {
             closeAddPGModal();
             renderView('manage');
         } else {
-            alert("Failed to save property. Ensure you are an Admin.");
+            alert("Failed to save property.");
         }
     } catch(err) {
-        alert("Network error.");
+        alert("Upload Error: " + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Save Property";
     }
 }
 
-window.deletePGHandler = async function(id) {
-    if(confirm("Are you sure you want to delete this property?")) {
-        await deletePG(id);
-        renderView('manage');
+let pendingDeletions = [];
+
+window.triggerSingleDelete = function(id) {
+    pendingDeletions = [id];
+    document.getElementById('deleteConfirmText').textContent = "Are you sure you want to delete this property? This action cannot be undone.";
+    document.getElementById('deleteConfirmModal').style.display = 'flex';
+}
+
+window.triggerBulkDelete = function() {
+    const checkboxes = document.querySelectorAll('.pg-checkbox:checked');
+    pendingDeletions = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    document.getElementById('deleteConfirmText').textContent = `Are you sure you want to delete ${pendingDeletions.length} properties? This action cannot be undone.`;
+    document.getElementById('deleteConfirmModal').style.display = 'flex';
+}
+
+window.closeDeleteModal = function() {
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+    pendingDeletions = [];
+}
+
+window.submitConfirmDelete = async function() {
+    if(pendingDeletions.length === 0) return;
+    
+    const btn = document.getElementById('confirmDeleteBtn');
+    const originalText = btn.textContent;
+    btn.textContent = "Deleting...";
+    btn.disabled = true;
+
+    try {
+        const promises = pendingDeletions.map(id => deletePG(id));
+        await Promise.all(promises);
+        window.showToast(`Successfully deleted ${pendingDeletions.length} properties.`, "success");
+    } catch (e) {
+        window.showToast("Error during deletion.", "error");
+    }
+    
+    btn.textContent = originalText;
+    btn.disabled = false;
+    closeDeleteModal();
+    renderView('manage');
+}
+
+window.toggleAllPgs = function(source) {
+    const checkboxes = document.querySelectorAll('.pg-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    updateBulkDeleteBtn();
+}
+
+window.updateBulkDeleteBtn = function() {
+    const checked = document.querySelectorAll('.pg-checkbox:checked').length;
+    const btn = document.getElementById('bulkDeleteBtn');
+    if(btn) {
+        if(checked > 0) {
+            btn.style.display = 'inline-flex';
+            document.getElementById('selectedCount').textContent = checked;
+        } else {
+            btn.style.display = 'none';
+            const masterCheck = document.getElementById('selectAllPgs');
+            if(masterCheck) masterCheck.checked = false;
+        }
     }
 }
 
