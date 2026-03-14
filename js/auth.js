@@ -17,7 +17,9 @@ function setRole(role) {
 function toggleMode() {
     const modeInput = document.getElementById('authMode');
     const nameGroup = document.getElementById('nameGroup');
+    const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
     const nameInput = document.getElementById('name');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
     const submitBtn = document.getElementById('submitBtn');
     const toggleText = document.getElementById('toggleText');
     const title = document.getElementById('authTitle');
@@ -25,14 +27,19 @@ function toggleMode() {
     if(modeInput.value === 'login') {
         modeInput.value = 'register';
         nameGroup.style.display = 'block';
+        confirmPasswordGroup.style.display = 'block';
         nameInput.required = true;
+        confirmPasswordInput.required = true;
         submitBtn.textContent = 'Sign Up';
         toggleText.innerText = 'Already have an account? Log in';
         title.innerText = 'Create Account';
     } else {
         modeInput.value = 'login';
         nameGroup.style.display = 'none';
+        confirmPasswordGroup.style.display = 'none';
         nameInput.required = false;
+        confirmPasswordInput.required = false;
+        confirmPasswordInput.value = '';
         submitBtn.textContent = 'Sign In';
         toggleText.innerText = "Don't have an account? Sign up";
         title.innerText = 'Welcome Back';
@@ -56,6 +63,15 @@ async function handleAuth(e) {
 
     if(mode === 'register') {
         const name = document.getElementById('name').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showError("Passwords do not match");
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign Up';
+            return;
+        }
+
         try {
             const res = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
@@ -65,27 +81,13 @@ async function handleAuth(e) {
             const data = await res.json();
             
             if(res.ok) {
-                window.showToast("Account created successfully!", "success");
+                window.showToast("Account created successfully! Redirecting to login...", "success");
                 
-                // Auto login after successful registration
-                const loginRes = await fetch(`${API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const loginData = await loginRes.json();
+                // Properly redirect to login page to reset entire form state
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
                 
-                if(loginRes.ok) {
-                    localStorage.setItem('auth_token', loginData.token);
-                    localStorage.setItem('user_name', loginData.name);
-                    localStorage.setItem('user_role', loginData.role);
-                    
-                    if(loginData.role === 'owner') {
-                        window.location.href = 'admin.html';
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                }
             } else {
                 if (data.message === "User already exists" || res.status === 400 || res.status === 409) {
                     window.showToast("Account already exists", "error");
@@ -126,5 +128,57 @@ async function handleAuth(e) {
     }
     
     submitBtn.disabled = false;
-    submitBtn.textContent = mode === 'register' ? 'Sign Up' : 'Sign In';
+    submitBtn.textContent = document.getElementById('authMode').value === 'register' ? 'Sign Up' : 'Sign In';
+}
+
+window.showForgotPassword = function() {
+    document.getElementById('authForm').style.display = 'none';
+    document.getElementById('toggleText').parentElement.style.display = 'none';
+    document.getElementById('forgotPwdView').style.display = 'block';
+    document.getElementById('authTitle').innerText = 'Reset Password';
+    document.getElementById('authSub').innerText = 'Follow the steps to recover your account';
+    document.querySelector('.role-selector').style.display = 'none';
+}
+
+window.hideForgotPassword = function() {
+    document.getElementById('authForm').style.display = 'block';
+    document.getElementById('toggleText').parentElement.style.display = 'block';
+    document.getElementById('forgotPwdView').style.display = 'none';
+    
+    const mode = document.getElementById('authMode').value;
+    document.getElementById('authTitle').innerText = mode === 'login' ? 'Welcome Back' : 'Create Account';
+    document.getElementById('authSub').innerText = mode === 'login' ? 'Log in to manage your spaces' : 'Join NexStay today';
+    document.querySelector('.role-selector').style.display = 'flex';
+}
+
+window.handleForgotPassword = async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('forgotEmail').value;
+    const submitBtn = document.getElementById('forgotSubmitBtn');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    
+    try {
+        const res = await fetch(`${API_URL}/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        
+        if(res.ok) {
+            window.showToast(data.message, "success");
+            setTimeout(() => {
+                hideForgotPassword();
+            }, 2000);
+        } else {
+            window.showToast(data.message || "Failed to send reset link", "error");
+        }
+    } catch(e) {
+        window.showToast("Server error. Ensure backend is running.", "error");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Reset Link';
+    }
 }

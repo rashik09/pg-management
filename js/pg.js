@@ -16,12 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const container = document.getElementById('pgContainer');
         container.style.display = 'block';
-        
-        // Images mapping
-        const mainImage = pg.image;
-        const sub1 = pg.gallery && pg.gallery.length > 0 ? pg.gallery[0] : mainImage;
-        const sub2 = pg.gallery && pg.gallery.length > 1 ? pg.gallery[1] : mainImage;
-        
+
         // Amenities Check
         let amsHtml = '';
         if(pg.has_ac) amsHtml += `<div class="amenity-item"><i data-lucide="sun-snow"></i> Air Conditioning</div>`;
@@ -31,13 +26,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Always provide base amenities
         amsHtml += `<div class="amenity-item"><i data-lucide="shield-check"></i> Security Cameras</div>`;
         amsHtml += `<div class="amenity-item"><i data-lucide="sparkles"></i> Daily Housekeeping</div>`;
+        
+        // Dynamic Image Carousel
+        let images = [pg.image];
+        if(pg.gallery && pg.gallery.length > 0) {
+            images = images.concat(pg.gallery);
+        }
+        
+        window.pgImages = images;
+        window.currentSlide = 0;
+        let slideInterval;
+
+        function startSlideShow() {
+            if (images.length > 1) {
+                slideInterval = setInterval(() => {
+                    window.changeSlide(1, false);
+                }, 3000);
+            }
+        }
+
+        window.changeSlide = function(direction, isManual = true) {
+            if (isManual && slideInterval) {
+                clearInterval(slideInterval);
+                startSlideShow(); // Reset timer on manual click
+            }
+
+            window.currentSlide += direction;
+            if (window.currentSlide < 0) {
+                window.currentSlide = window.pgImages.length - 1;
+            } else if (window.currentSlide >= window.pgImages.length) {
+                window.currentSlide = 0;
+            }
+            const imgEl = document.getElementById('carouselMainImg');
+            // Brief fade effect
+            imgEl.style.opacity = 0.5;
+            setTimeout(() => {
+                imgEl.src = window.pgImages[window.currentSlide];
+                imgEl.style.opacity = 1;
+            }, 150);
+            
+            const counterEl = document.getElementById('carouselCounter');
+            if(counterEl) counterEl.textContent = `${window.currentSlide + 1} / ${window.pgImages.length}`;
+        };
+
+        // Start autoplay initially
+        startSlideShow();
+
+        let carouselHtml = `
+            <div class="pg-carousel" style="position: relative; width: 100%; height: clamp(300px, 45vh, 480px); margin-top: 1.5rem; border-radius: 16px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
+                <img id="carouselMainImg" src="${images[0]}" style="width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s ease;" alt="${pg.title}">
+                
+                ${images.length > 1 ? `
+                    <button onclick="changeSlide(-1, true)" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-md); transition: background 0.2s; z-index: 10;">
+                        <i data-lucide="chevron-left" style="color: var(--text-main);"></i>
+                    </button>
+                    <button onclick="changeSlide(1, true)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-md); transition: background 0.2s; z-index: 10;">
+                        <i data-lucide="chevron-right" style="color: var(--text-main);"></i>
+                    </button>
+                    <div id="carouselCounter" style="position: absolute; bottom: 1rem; right: 1.5rem; background: rgba(0,0,0,0.6); color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 500; z-index: 10;">
+                        1 / ${images.length}
+                    </div>
+                ` : ''}
+            </div>
+        `;
 
         container.innerHTML += `
-            <div class="pg-hero-grid">
-                <img src="${mainImage}" class="hero-main-img" alt="${pg.title}">
-                <img src="${sub1}" class="hero-sub-img" alt="Interior">
-                <img src="${sub2}" class="hero-sub-img" alt="Facilities">
-            </div>
+            ${carouselHtml}
 
             <div class="pg-content-layout">
                 <div class="pg-details">

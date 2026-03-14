@@ -205,7 +205,7 @@ window.openAddPGModal = async function(id = null) {
 
     if(id) {
         try {
-            const res = await fetch(`http://127.0.0.1:5000/api/pgs/${id}`);
+            const res = await fetch(`${API_URL}/pgs/${id}`);
             if(res.ok) {
                 const pg = await res.json();
                 document.getElementById('pgTitle').value = pg.title;
@@ -256,7 +256,7 @@ window.submitNewPG = async function(e) {
             const formData = new FormData();
             formData.append('file', coverInput.files[0]);
             
-            const req = await fetch('http://127.0.0.1:5000/api/upload', {
+            const req = await fetch(`${API_URL}/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
                 body: formData
@@ -272,7 +272,7 @@ window.submitNewPG = async function(e) {
                 const formData = new FormData();
                 formData.append('file', galleryInput.files[i]);
                 
-                const req = await fetch('http://127.0.0.1:5000/api/upload', {
+                const req = await fetch(`${API_URL}/upload`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
                     body: formData
@@ -303,7 +303,7 @@ window.submitNewPG = async function(e) {
         if(mainImage) data.image = mainImage;
         if(galleryUrls.length > 0) data.gallery = galleryUrls;
 
-        const url = window.editingPgId ? `http://127.0.0.1:5000/api/pgs/${window.editingPgId}` : 'http://127.0.0.1:5000/api/pgs';
+        const url = window.editingPgId ? `${API_URL}/pgs/${window.editingPgId}` : `${API_URL}/pgs`;
         const method = window.editingPgId ? 'PUT' : 'POST';
 
         const response = await fetch(url, {

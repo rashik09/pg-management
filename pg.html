@@ -10,36 +10,6 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .pg-hero-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            height: clamp(300px, 45vh, 480px);
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            border-radius: 16px;
-            overflow: hidden;
-            background: var(--bg-light);
-        }
-        .hero-main-img {
-            grid-row: 1 / span 2;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s;
-        }
-        .hero-main-img:hover {
-            transform: scale(1.02);
-        }
-        .hero-sub-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s;
-        }
-        .hero-sub-img:hover {
-            transform: scale(1.05);
-        }
 
         .pg-content-layout {
             display: grid;
@@ -51,14 +21,6 @@
         }
 
         @media (max-width: 900px) {
-            .pg-hero-grid {
-                grid-template-columns: 1fr;
-                grid-template-rows: 60% 20% 20%;
-                height: 400px;
-            }
-            .hero-main-img {
-                grid-row: 1 / span 1;
-            }
             .pg-content-layout {
                 grid-template-columns: 1fr;
             }
@@ -235,8 +197,8 @@
         </div>
     </footer>
 
-    <script src="js/data.js"></script>
-    <script src="js/pg.js"></script>
+    <script src="js/data.js?v=1.2"></script>
+    <script src="js/pg.js?v=1.2"></script>
     <script>
         lucide.createIcons();
         

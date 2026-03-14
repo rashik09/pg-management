@@ -79,6 +79,16 @@ def init_db():
             status TEXT
         )
     ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            pg_id INTEGER,
+            created_at TEXT,
+            UNIQUE(user_id, pg_id)
+        )
+    ''')
     
     # Check if we need to seed property data
     c.execute('SELECT COUNT(*) FROM properties')
@@ -402,6 +412,53 @@ def update_inquiry(current_user, id):
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Inquiry updated"})
+
+# --- FAVORITES API ROUTES ---
+@app.route('/api/favorites', methods=['GET'])
+@token_required
+def get_favorites(current_user):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        SELECT f.id, f.pg_id, f.created_at, p.title, p.location, p.city, p.image, p.price, p.type, p.vacancies
+        FROM favorites f
+        JOIN properties p ON f.pg_id = p.id
+        WHERE f.user_id = ? AND p.status = 'active'
+        ORDER BY f.id DESC
+    ''', (dict(current_user)['id'],))
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@app.route('/api/favorites', methods=['POST'])
+@token_required
+def add_favorite(current_user):
+    data = request.json
+    pg_id = data.get('pg_id')
+    if not pg_id:
+        return jsonify({"message": "pg_id is required"}), 400
+    conn = get_db_connection()
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO favorites (user_id, pg_id, created_at) VALUES (?, ?, ?)',
+                  (dict(current_user)['id'], pg_id, datetime.datetime.utcnow().isoformat()))
+        conn.commit()
+        return jsonify({"success": True, "message": "Added to favorites"}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"message": "Already in favorites"}), 409
+    finally:
+        conn.close()
+
+@app.route('/api/favorites/<int:pg_id>', methods=['DELETE'])
+@token_required
+def remove_favorite(current_user, pg_id):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM favorites WHERE user_id=? AND pg_id=?',
+              (dict(current_user)['id'], pg_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Removed from favorites"})
 
 # --- UPLOAD API ROUTE ---
 @app.route('/api/upload', methods=['POST'])

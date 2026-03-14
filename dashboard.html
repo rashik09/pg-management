@@ -10,49 +10,59 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .admin-header {
+        .dash-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 2rem;
             margin-bottom: 2rem;
         }
 
         .dashboard-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
+            border-radius: 16px;
+            padding: 0;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border);
+            overflow: hidden;
         }
 
         .table-responsive {
             overflow-x: auto;
         }
 
-        table {
+        .dash-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
             min-width: 600px;
         }
 
-        th, td {
-            padding: 1rem;
+        .dash-table th, .dash-table td {
+            padding: 1rem 1.5rem;
             text-align: left;
             border-bottom: 1px solid var(--border);
         }
 
-        th {
-            background: #f8fafc;
-            color: var(--text-main);
+        .dash-table th {
+            background: var(--bg-light);
+            color: var(--text-muted);
             font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .dash-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .dash-table tr:hover {
+            background: #f9fafb;
         }
 
         .status-badge {
             padding: 0.25rem 0.75rem;
             border-radius: 999px;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 500;
             display: inline-block;
         }
@@ -66,16 +76,67 @@
             gap: 1rem;
         }
         .lead-img {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 8px;
             object-fit: cover;
+            display: inline-block;
+            flex-shrink: 0;
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+        .empty-state i {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            color: var(--border);
+        }
+
+        /* Dashboard Tabs */
+        .dash-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .dash-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        .dash-tab:hover {
+            color: var(--text-main);
+        }
+        .dash-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Favorites Grid */
+        .fav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 1.75rem;
+        }
     </style>
 </head>
-<body>
-    <nav class="navbar">
+<body style="overflow-x: hidden;">
+    <nav class="navbar glass">
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <i data-lucide="home"></i>
@@ -91,29 +152,44 @@
         </div>
     </nav>
 
-    <main class="container" style="min-height: 80vh;">
-        <div class="admin-header">
+    <main style="max-width: 1200px; margin: 0 auto; padding: 7rem 1.5rem 3rem; min-height: 80vh;">
+        <div class="dash-header">
             <div>
-                <h1 style="font-size: 2rem; color: var(--text-dark);">My Bookings</h1>
-                <p style="color: var(--text-muted); margin-top: 0.5rem;">Track the status of your property inquiries.</p>
+                <h1 style="font-size: 2rem; color: var(--text-main);">My Dashboard</h1>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">Manage your bookings and saved properties.</p>
             </div>
         </div>
 
-        <div class="dashboard-card" style="margin-bottom: 3rem;">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Property Interested In</th>
-                            <th>Location</th>
-                            <th>Date Requested</th>
-                            <th>Owner Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inquiriesTableBody">
-                        <tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading your bookings...</td></tr>
-                    </tbody>
-                </table>
+        <div class="dash-tabs">
+            <button class="dash-tab active" id="tabBookings" onclick="switchTab('bookings')">My Bookings</button>
+            <button class="dash-tab" id="tabFavorites" onclick="switchTab('favorites')">My Favorites</button>
+        </div>
+
+        <!-- Bookings Section -->
+        <div id="bookingsSection">
+            <div class="dashboard-card" style="margin-bottom: 3rem;">
+                <div class="table-responsive">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Location</th>
+                                <th>Date Requested</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inquiriesTableBody">
+                            <tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading your bookings...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favoritesSection" style="display: none;">
+            <div id="favoritesGrid" class="fav-grid">
+                <p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 3rem;">Loading your favorites...</p>
             </div>
         </div>
     </main>
@@ -125,8 +201,16 @@
                     <i data-lucide="home"></i>
                     <span>NexStay</span>
                 </div>
-                <p style="color: var(--text-muted); margin-top: 1rem;">Modern living spaces for students and professionals.</p>
+                <p>Redefining PG living with transparency and comfort.</p>
             </div>
+            <div class="footer-links">
+                <a href="#">About Us</a>
+                <a href="#">Contact</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 NexStay. All rights reserved.</p>
         </div>
     </footer>
 
@@ -148,7 +232,18 @@
             // Fetch specific user's inquiries
             const inquiries = await fetchUserInquiries();
             renderInquiries(inquiries);
+
+            // Fetch favorites
+            const favorites = await getFavorites();
+            renderFavorites(favorites);
         });
+
+        function switchTab(tab) {
+            document.getElementById('tabBookings').classList.toggle('active', tab === 'bookings');
+            document.getElementById('tabFavorites').classList.toggle('active', tab === 'favorites');
+            document.getElementById('bookingsSection').style.display = tab === 'bookings' ? 'block' : 'none';
+            document.getElementById('favoritesSection').style.display = tab === 'favorites' ? 'block' : 'none';
+        }
 
         async function fetchUserInquiries() {
             try {
@@ -191,6 +286,80 @@
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function renderFavorites(favorites) {
+            const grid = document.getElementById('favoritesGrid');
+            grid.innerHTML = '';
+
+            if(favorites.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 1rem; opacity: 0.4;">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        <p style="font-size: 1.1rem; font-weight: 500;">No favorites yet</p>
+                        <p style="margin-top: 0.5rem;">Browse PGs on the homepage and click the heart icon to save them here!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            favorites.forEach(fav => {
+                const card = document.createElement('div');
+                card.className = 'pg-card';
+                card.id = `fav-card-${fav.pg_id}`;
+                
+                // Set vacancy styling
+                const vacancyClass = fav.vacancies === 0 ? 'full' : '';
+                const vacancyText = fav.vacancies === 0 ? 'Full' : `${fav.vacancies} left`;
+                
+                card.innerHTML = `
+                    <a href="pg.html?id=${fav.pg_id}" style="text-decoration:none; color:inherit; display:block;">
+                        <div class="pg-image">
+                            <img src="${fav.image}" alt="${fav.title}">
+                            <div class="pg-badge">${fav.type}</div>
+                            <div class="vacancy-badge ${vacancyClass}">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+                                ${vacancyText}
+                            </div>
+                        </div>
+                        <div class="pg-content">
+                            <h3 class="pg-title">${fav.title}</h3>
+                            <div class="pg-location"><i data-lucide="map-pin"></i> ${fav.location}, ${fav.city}</div>
+                            
+                            <div class="pg-footer" style="margin-top: 1rem;">
+                                <div class="pg-price">₹${fav.price.toLocaleString()}<span>/mo</span></div>
+                                <button class="btn btn-primary-outline btn-sm" style="color:#EF4444; border-color:#EF4444;" onclick="event.preventDefault(); removeFavFromDashboard(${fav.pg_id})">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="#EF4444" stroke="#EF4444" stroke-width="2" style="margin-right:0.25rem; vertical-align:middle;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        async function removeFavFromDashboard(pgId) {
+            const success = await removeFavorite(pgId);
+            if(success) {
+                const card = document.getElementById(`fav-card-${pgId}`);
+                if(card) {
+                    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        card.remove();
+                        // Check if empty now
+                        const remaining = document.querySelectorAll('.fav-card').length;
+                        if(remaining === 0) renderFavorites([]);
+                    }, 300);
+                }
+                window.showToast('Removed from favorites', 'success');
+            }
         }
 
         function logout() {

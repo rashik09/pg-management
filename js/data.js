@@ -1,4 +1,4 @@
-const API_URL = 'http://127.0.0.1:5000/api';
+const API_URL = 'http://localhost:5000/api';
 
 function getHeaders() {
     const token = localStorage.getItem('auth_token');
@@ -76,6 +76,44 @@ async function deletePG(id) {
         return true;
     } catch (e) {
         console.error("Failed to delete PG:", e);
+        return false;
+    }
+}
+
+async function getFavorites() {
+    try {
+        const response = await fetch(`${API_URL}/favorites`, { headers: getHeaders() });
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (e) {
+        console.error("Failed to fetch favorites:", e);
+        return [];
+    }
+}
+
+async function addFavorite(pgId) {
+    try {
+        const response = await fetch(`${API_URL}/favorites`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ pg_id: pgId })
+        });
+        return response.ok || response.status === 409;
+    } catch (e) {
+        console.error("Failed to add favorite:", e);
+        return false;
+    }
+}
+
+async function removeFavorite(pgId) {
+    try {
+        await fetch(`${API_URL}/favorites/${pgId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        return true;
+    } catch (e) {
+        console.error("Failed to remove favorite:", e);
         return false;
     }
 }

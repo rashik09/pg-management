@@ -4,71 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexStay - Find Your Perfect PG</title>
+    <meta name="description" content="Discover premium paying guest accommodations near you. NexStay helps you find the perfect PG with top-tier amenities.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body style="overflow-x: hidden;">
-    <nav class="navbar glass">
+
+    <!-- Page Loader -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-spinner">
+            <div class="loader-logo">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <div class="loader-ring"></div>
+        </div>
+        <p class="loader-text">Finding your perfect stay...</p>
+    </div>
+
+    <nav class="navbar glass" id="mainNav">
         <div class="nav-container">
             <a href="index.html" class="logo">
-                <i data-lucide="home"></i>
-                <span>NexStay</span>
+                <div class="logo-icon-wrap">
+                    <i data-lucide="home"></i>
+                </div>
+                <span>Nex<span style="color: var(--accent);">Stay</span></span>
             </a>
             <div class="nav-links" id="navLinks">
-                <a href="index.html" class="active">Home</a>
-                <a href="#search">Search</a>
+                <a href="index.html" class="nav-link active">
+                    <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+                    Explore
+                </a>
+                <a href="#search" class="nav-link">
+                    <i data-lucide="search" style="width:16px;height:16px;"></i>
+                    Search
+                </a>
                 <!-- Injected via app.js -->
             </div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+                <i data-lucide="menu"></i>
+            </button>
         </div>
     </nav>
 
     <main>
-        <section class="hero blur-bg">
-            <div class="hero-content">
-                <span class="badge">The Smartest Way to Find PGs</span>
-                <h1>Find a PG that feels like <span class="highlight">Home</span></h1>
-                <p>Discover premium paying guest accommodations near you with top-tier amenities.</p>
+        <section class="hero">
+            <div class="hero-bg-shapes">
+                <div class="hero-shape hero-shape-1"></div>
+                <div class="hero-shape hero-shape-2"></div>
+                <div class="hero-shape hero-shape-3"></div>
+            </div>
+            <div class="hero-content animate-fadeUp">
+                <div class="hero-badge">
+                    <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+                    The Smartest Way to Find PGs
+                </div>
+                <h1>Find a PG that<br>feels like <span class="highlight">Home</span></h1>
+                <p>Discover premium paying guest accommodations near you with top-tier amenities, verified listings, and transparent pricing.</p>
                 
                 <div class="search-glass" style="position: relative;">
                     <div class="search-input-wrapper" style="width: 100%;">
-                        <i data-lucide="search"></i>
+                        <i data-lucide="search" style="color:var(--primary);"></i>
                         <input type="text" id="searchInput" class="search-input" placeholder="Search by city, college, or neighborhood..." autocomplete="off">
                     </div>
-                    <button class="btn btn-primary-outline" id="locationBtn" title="Use Current Location" style="border:none; padding: 0.5rem; margin-right: 0.5rem; color: var(--text-muted);">
-                        <i data-lucide="locate" style="width: 20px; height: 20px;"></i>
+                    <button class="btn btn-ghost" id="locationBtn" title="Use Current Location">
+                        <i data-lucide="locate" style="width: 18px; height: 18px;"></i>
                     </button>
-                    <button class="btn btn-primary" id="searchBtn">Find Rooms</button>
+                    <button class="btn btn-primary btn-glow" id="searchBtn">
+                        <i data-lucide="arrow-right" style="width:18px;height:18px;"></i>
+                        Find Rooms
+                    </button>
                     
                     <!-- Autocomplete Dropdown -->
-                    <div id="autocompleteDropdown" style="display: none; position: absolute; top: 110%; left: 0; width: 100%; background: white; border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); overflow: hidden; z-index: 100; text-align: left; max-height: 250px; overflow-y: auto;">
+                    <div id="autocompleteDropdown" style="display: none; position: absolute; top: 110%; left: 0; width: 100%; background: white; border-radius: 16px; box-shadow: var(--shadow-xl); border: 1px solid var(--border); overflow: hidden; z-index: 100; text-align: left; max-height: 250px; overflow-y: auto;">
                         <!-- dynamic items -->
+                    </div>
+                </div>
+
+                <div class="hero-stats animate-fadeUp" style="animation-delay:0.3s;">
+                    <div class="hero-stat">
+                        <strong>500+</strong>
+                        <span>Active Listings</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <strong>50+</strong>
+                        <span>Cities</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <strong>10K+</strong>
+                        <span>Happy Tenants</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="pg-section" id="search" style="padding-top: 5rem;">
-            <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
-                <h2>Find Your Perfect Room</h2>
-                <p class="subtitle">Use advanced filters to narrow down your search</p>
+        <section class="pg-section" id="search">
+            
+            <!-- Toolbar: heading + filter toggle + count -->
+            <div class="results-toolbar">
+                <div class="results-toolbar-left">
+                    <h2 id="resultsHeading">Recommended For You</h2>
+                    <span id="resultsCount" class="results-count"></span>
+                </div>
+                <button class="btn btn-filter" id="filterToggleBtn" onclick="toggleFilterDrawer()">
+                    <i data-lucide="sliders-horizontal" style="width:18px;height:18px;"></i>
+                    <span>Filters</span>
+                    <span class="filter-count-badge" id="activeFilterCount" style="display:none;">0</span>
+                </button>
             </div>
 
-            <div class="search-layout" style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
-                
-                <!-- FILTER SIDEBAR -->
-                <aside class="filter-sidebar" style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border); position: sticky; top: 100px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1.1rem; font-weight: 600;">Filters</h3>
-                        <button class="btn" style="background: none; color: var(--primary); padding: 0; font-size: 0.9rem;" id="clearFiltersBtn">Clear All</button>
-                    </div>
-
-                    <!-- Location Filter -->
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">City / Location</label>
-                        <select id="filterLocation" class="form-control" style="width: 100%;">
+            <!-- COLLAPSIBLE FILTER DRAWER -->
+            <div class="filter-drawer" id="filterDrawer">
+                <div class="filter-drawer-inner">
+                    <div class="filter-group">
+                        <label class="filter-label"><i data-lucide="map-pin" style="width:14px;height:14px;"></i> City / Location</label>
+                        <select id="filterLocation" class="filter-select">
                             <option value="">All Locations</option>
                             <option value="Bangalore">Bangalore</option>
                             <option value="Mumbai">Mumbai</option>
@@ -77,31 +131,25 @@
                             <option value="Delhi">Delhi</option>
                         </select>
                     </div>
-
-                    <!-- Budget Filter -->
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">
-                            <span>Max Budget</span>
-                            <span id="budgetDisplay">₹20,000</span>
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i data-lucide="indian-rupee" style="width:14px;height:14px;"></i> Max Budget
+                            <span id="budgetDisplay" class="filter-value">₹20,000</span>
                         </label>
-                        <input type="range" id="filterBudget" min="5000" max="30000" step="1000" value="20000" style="width: 100%; accent-color: var(--primary);">
+                        <input type="range" id="filterBudget" min="5000" max="30000" step="1000" value="20000" class="filter-range">
                     </div>
-
-                    <!-- PG Type -->
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">Tenant Type</label>
-                        <select id="filterType" class="form-control" style="width: 100%;">
+                    <div class="filter-group">
+                        <label class="filter-label"><i data-lucide="users" style="width:14px;height:14px;"></i> Tenant Type</label>
+                        <select id="filterType" class="filter-select">
                             <option value="">Any</option>
                             <option value="Boys">Boys Only</option>
                             <option value="Girls">Girls Only</option>
                             <option value="Co-ed">Co-ed</option>
                         </select>
                     </div>
-
-                    <!-- Sharing Type -->
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-dark);">Occupancy</label>
-                        <select id="filterSharing" class="form-control" style="width: 100%;">
+                    <div class="filter-group">
+                        <label class="filter-label"><i data-lucide="bed-double" style="width:14px;height:14px;"></i> Occupancy</label>
+                        <select id="filterSharing" class="filter-select">
                             <option value="">Any</option>
                             <option value="1 Sharing">Private Room</option>
                             <option value="2 Sharing">Double Sharing</option>
@@ -109,31 +157,23 @@
                             <option value="4 Sharing">Four Sharing</option>
                         </select>
                     </div>
-
-                    <button class="btn btn-primary" id="applyFiltersBtn" style="width: 100%; justify-content: center;">Apply Filters</button>
-                </aside>
-
-                <!-- RESULTS GRID -->
-                <div class="search-results">
-                    <!-- Dynamic Headers for Filter States -->
-                    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                        <h2 id="resultsHeading" style="font-size: 1.5rem;">Recommended For You</h2>
-                        <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;"></span>
-                    </div>
-
-                    <!-- Unified Grid container. We render both local & featured here, or filtered sets here -->
-                    <div class="pg-grid" id="mainPgGrid">
-                        <!-- Populated by JS -->
+                    <div class="filter-actions">
+                        <button class="btn btn-ghost" id="clearFiltersBtn">Clear All</button>
+                        <button class="btn btn-primary" id="applyFiltersBtn">Apply Filters</button>
                     </div>
                 </div>
+            </div>
 
+            <!-- PG Grid -->
+            <div class="pg-grid" id="mainPgGrid">
+                <!-- Skeleton loaders injected by JS -->
             </div>
         </section>
     </main>
 
     <!-- Booking Modal -->
     <div class="modal-overlay" id="bookModal">
-        <div class="modal" style="max-width: 400px; text-align: center;">
+        <div class="modal" style="max-width: 420px; text-align: center;">
             <div class="modal-header" style="justify-content: center; position: relative;">
                 <h3>Book <span id="bookPgTitleText" style="color:var(--primary);">Property</span></h3>
                 <button class="close-modal" onclick="closeBookModal()" style="position: absolute; right: 0; top: -5px;"><i data-lucide="x"></i></button>
@@ -151,7 +191,7 @@
                         <label>Phone Number</label>
                         <input type="tel" id="bookPhone" class="form-control" pattern="[0-9]{10}" maxlength="10" minlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="10-digit number" required>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" id="bookSubmitBtn">Send Inquiry</button>
+                    <button type="submit" class="btn btn-primary btn-glow" style="width: 100%; justify-content: center;" id="bookSubmitBtn">Send Inquiry</button>
                 </form>
             </div>
 
