@@ -301,7 +301,23 @@ def update_pg(current_user, id):
     conn = get_db_connection()
     c = conn.cursor()
     
-    gallery_str = json.dumps(data.get('gallery', []))
+    # Fetch existing record to preserve images if not provided
+    c.execute('SELECT image, gallery FROM properties WHERE id=? AND status="active"', (id,))
+    existing = c.fetchone()
+    if not existing:
+        conn.close()
+        return jsonify({"message": "Property not found"}), 404
+    
+    existing_dict = dict(existing)
+    
+    # Use new image if provided, otherwise keep existing
+    image = data.get('image', existing_dict['image'])
+    
+    # Use new gallery if provided, otherwise keep existing
+    if 'gallery' in data and len(data['gallery']) > 0:
+        gallery_str = json.dumps(data['gallery'])
+    else:
+        gallery_str = existing_dict['gallery']
     
     c.execute('''
         UPDATE properties SET
@@ -311,7 +327,7 @@ def update_pg(current_user, id):
         WHERE id=? AND status="active"
     ''', (
         data['title'], data['location'], data['city'], int(data['price']),
-        data['type'], data.get('image', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'),
+        data['type'], image,
         int(data['vacancies']), data['sharing_type'], data['bathroom_type'],
         bool(data.get('has_ac')), bool(data.get('has_wifi')), bool(data.get('has_hot_water')),
         data.get('description', 'A beautiful remodeled PG property.'), gallery_str,
@@ -320,6 +336,8 @@ def update_pg(current_user, id):
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "PG updated successfully"})
+
+@app.route('/api/pgs/<int:id>', methods=['DELETE'])
 @token_required
 @owner_required
 def delete_pg(current_user, id):

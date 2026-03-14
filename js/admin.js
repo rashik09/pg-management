@@ -319,10 +319,10 @@ window.submitNewPG = async function(e) {
             closeAddPGModal();
             renderView('manage');
         } else {
-            alert("Failed to save property.");
+            window.showToast("Failed to save property.", "error");
         }
     } catch(err) {
-        alert("Upload Error: " + err.message);
+        window.showToast("Upload Error: " + err.message, "error");
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Save Property";
