@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Home, ArrowRight, Mail, Lock, User, Building } from 'lucide-react';
 import { login as loginApi, register as registerApi, forgotPassword } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -15,8 +15,24 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { login } = useAuth();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const token = params.get('token');
+    if (token) {
+        const userObj = {
+            name: params.get('name') || 'Google User',
+            email: params.get('email') || '',
+            role: params.get('role') || 'user'
+        };
+        login(token, userObj);
+        showToast("Signed in with Google successfully!", "success");
+        navigate(userObj.role === 'owner' ? '/admin' : '/');
+    }
+  }, [search, login, navigate, showToast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -118,6 +134,22 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+            <span style={{ margin: '0 0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+        </div>
+
+        <button 
+            type="button" 
+            className="btn btn-primary-outline" 
+            style={{ width: '100%', justifyContent: 'center', padding: '0.875rem' }}
+            onClick={() => window.location.href = 'http://localhost:5000/oauth2/authorization/google'}
+        >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: '18px', height: '18px', marginRight: '0.5rem' }} />
+            Sign in with Google
+        </button>
 
         <div style={{textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem'}}>
           <span style={{color: 'var(--text-muted)'}}>

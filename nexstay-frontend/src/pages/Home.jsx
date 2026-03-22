@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowRight, Search } from 'lucide-react';
+import { SlidersHorizontal, ArrowRight, Search, ChevronDown } from 'lucide-react';
 import { getPGs, getFavorites } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import PGCard from '../components/PGCard';
@@ -10,10 +10,18 @@ import FilterDrawer from '../components/FilterDrawer';
 
 export default function Home() {
   const { user } = useAuth();
+  
+  // Data state
   const [allPGs, setAllPGs] = useState([]);
   const [filteredPGs, setFilteredPGs] = useState([]);
   const [favIds, setFavIds] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination & Sorting state
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState('id,desc');
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({ location: '', budget: 20000, type: '', sharing: '' });
@@ -23,57 +31,82 @@ export default function Home() {
   // Booking modal
   const [booking, setBooking] = useState({ isOpen: false, pgId: null, pgTitle: '' });
 
+  // Determine if filters are active
+  const hasActiveFilters = searchQuery || filters.location || filters.budget < 20000 || filters.type || filters.sharing;
+  // If filtering, we fetch all (size=1000) so client-side filter works across all data. Otherwise use lazy loading (size=6)
+  const fetchSize = hasActiveFilters ? 1000 : 6;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        if (page === 0) setLoading(true); else setLoadingMore(true);
+        
         const [pgResult, favResult] = await Promise.all([
-          getPGs(),
-          user ? getFavorites() : Promise.resolve([])
+          getPGs(page, fetchSize, sortBy),
+          user && page === 0 ? getFavorites() : Promise.resolve([])
         ]);
         
-        const active = pgResult.filter(p => p.status === 'active');
-        setAllPGs(active);
-        setFilteredPGs(active);
-        setFavIds(favResult.map(f => f.pg_id));
+        const active = (pgResult.content || pgResult).filter(p => p.status === 'active');
+        
+        if (page === 0) {
+          setAllPGs(active);
+        } else {
+          setAllPGs(prev => {
+              // Ensure no duplicates just in case
+              const existingIds = new Set(prev.map(p => p.id));
+              const uniqueNew = active.filter(p => !existingIds.has(p.id));
+              return [...prev, ...uniqueNew];
+          });
+        }
+        
+        setTotalPages(pgResult.totalPages || 1);
+        if (page === 0 && user) setFavIds(favResult.map(f => f.pg_id));
+        
       } catch (e) {
         console.error("Fetch error", e);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, page, sortBy, fetchSize]);
 
-  const applyFilters = (query = searchQuery, currentFilters = filters) => {
-    const { location, budget, type, sharing } = currentFilters;
-    const q = query.toLowerCase();
+  // Apply filters whenever allPGs or filter criteria changes
+  useEffect(() => {
+    const applyFiltersLocal = () => {
+      const { location, budget, type, sharing } = filters;
+      const q = searchQuery.toLowerCase();
+      
+      const results = allPGs.filter(pg => {
+        const matchLoc = !location || pg.city?.toLowerCase() === location.toLowerCase() || pg.location?.toLowerCase().includes(location.toLowerCase());
+        const matchBudget = pg.price <= budget;
+        const matchType = !type || pg.type === type;
+        const matchSharing = !sharing || pg.sharing_type === sharing;
+        const matchSearch = !q || 
+                            pg.title?.toLowerCase().includes(q) || 
+                            pg.location?.toLowerCase().includes(q) ||
+                            pg.city?.toLowerCase().includes(q);
+                            
+        return matchLoc && matchBudget && matchType && matchSharing && matchSearch;
+      });
+      
+      setFilteredPGs(results);
+    };
     
-    const results = allPGs.filter(pg => {
-      const matchLoc = !location || pg.city.toLowerCase() === location.toLowerCase() || pg.location.toLowerCase().includes(location.toLowerCase());
-      const matchBudget = pg.price <= budget;
-      const matchType = !type || pg.type === type;
-      const matchSharing = !sharing || pg.sharing_type === sharing;
-      const matchSearch = !q || 
-                          pg.title.toLowerCase().includes(q) || 
-                          pg.location.toLowerCase().includes(q) ||
-                          pg.city.toLowerCase().includes(q);
-                          
-      return matchLoc && matchBudget && matchType && matchSharing && matchSearch;
-    });
-    
-    setFilteredPGs(results);
-    setIsFilterOpen(false);
-    
-    const searchEl = document.getElementById('search');
-    if (searchEl) {
-      searchEl.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+    applyFiltersLocal();
+  }, [allPGs, filters, searchQuery]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     setFilters({ ...filters, location: '' });
-    applyFilters(query, { ...filters, location: '' });
+    setPage(0); // Reset page on new search
+    
+    // Scroll to results
+    const searchEl = document.getElementById('search');
+    if (searchEl) {
+      searchEl.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const activeFilterCount = [
@@ -83,7 +116,7 @@ export default function Home() {
     filters.sharing ? 1 : 0
   ].reduce((a, b) => a + b, 0);
 
-  const uniqueCities = [...new Set(allPGs.map(pg => pg.city.trim()))].filter(Boolean);
+  const uniqueCities = ['Mumbai', 'Bangalore', 'Pune', 'Delhi', 'Hyderabad', 'Chennai', 'Kolkata', 'Gurugram', 'Noida'];
 
   return (
     <>
@@ -116,19 +149,39 @@ export default function Home() {
       </section>
 
       <section className="main-content" id="search">
-        <div className="section-header">
+        <div className="section-header" style={{alignItems: 'end'}}>
           <div>
             <h2>Explore Properties</h2>
             <p style={{color: 'var(--text-muted)'}} id="resultsCount">{filteredPGs.length} properties</p>
           </div>
-          <button 
-            className={`btn ${isFilterOpen ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-          >
-            <SlidersHorizontal size={18} />
-            Filters
-            {activeFilterCount > 0 && <span className="filter-badge" style={{display:'flex'}}>{activeFilterCount}</span>}
-          </button>
+          <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+            
+            {/* Sort Dropdown */}
+            <div className="sort-wrapper" style={{position: 'relative', display: 'flex', alignItems: 'center', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '99px', padding: '0.5rem 1rem'}}>
+              <span style={{fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '0.5rem'}}>Sort by:</span>
+              <select 
+                value={sortBy} 
+                onChange={(e) => { setSortBy(e.target.value); setPage(0); }}
+                style={{appearance: 'none', background: 'transparent', border: 'none', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', paddingRight: '1.5rem', cursor: 'pointer', outline: 'none'}}
+              >
+                <option value="id,desc">Recommended (Newest)</option>
+                <option value="price,asc">Price: Low to High</option>
+                <option value="price,desc">Price: High to Low</option>
+                <option value="vacancies,desc">Highest Vacancies</option>
+              </select>
+              <ChevronDown size={14} style={{position: 'absolute', right: '1rem', pointerEvents: 'none'}} />
+            </div>
+
+            <button 
+              className={`btn ${isFilterOpen ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              <SlidersHorizontal size={18} />
+              Filters
+              {activeFilterCount > 0 && <span className="filter-badge" style={{display:'flex'}}>{activeFilterCount}</span>}
+            </button>
+
+          </div>
         </div>
 
         <FilterDrawer 
@@ -137,17 +190,17 @@ export default function Home() {
           filters={filters}
           setFilters={setFilters}
           uniqueCities={uniqueCities}
-          onApply={() => applyFilters(searchQuery, filters)}
+          onApply={() => { setPage(0); setIsFilterOpen(false); }}
           onClear={() => {
             const cleared = { location: '', budget: 20000, type: '', sharing: '' };
             setFilters(cleared);
             setSearchQuery('');
-            applyFilters('', cleared);
+            setPage(0);
           }}
         />
 
         <div className="pg-grid" id="mainPgGrid">
-          {loading ? (
+          {loading && page === 0 ? (
             Array(6).fill(0).map((_, i) => <SkeletonCard key={i} />)
           ) : filteredPGs.length === 0 ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
@@ -169,6 +222,20 @@ export default function Home() {
             ))
           )}
         </div>
+
+        {/* Load More Button */}
+        {!hasActiveFilters && page < totalPages - 1 && (
+            <div style={{textAlign: 'center', marginTop: '3rem'}}>
+              <button 
+                className="btn btn-primary-outline" 
+                style={{padding: '0.75rem 2rem'}}
+                onClick={() => setPage(page + 1)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : 'Load More Properties'}
+              </button>
+            </div>
+        )}
       </section>
 
       <BookingModal 

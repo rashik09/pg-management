@@ -19,7 +19,7 @@ export const forgotPassword = (data) => api.post('/auth/forgot-password', data).
 export const getProfile = () => api.get('/auth/me').then(r => r.data);
 
 // PGs
-export const getPGs = () => api.get('/pgs').then(r => r.data);
+export const getPGs = (page = 0, size = 6, sort = 'id,desc') => api.get('/pgs', { params: { page, size, sort } }).then(r => r.data);
 export const getPGById = (id) => api.get(`/pgs/${id}`).then(r => r.data);
 export const createPG = (data) => api.post('/pgs', data).then(r => r.data);
 export const updatePG = (id, data) => api.put(`/pgs/${id}`, data).then(r => r.data);

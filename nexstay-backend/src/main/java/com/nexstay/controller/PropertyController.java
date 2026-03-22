@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.*;
 
@@ -58,10 +62,25 @@ public class PropertyController {
 
     // GET /api/pgs
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllPgs() {
-        List<Property> properties = propertyRepository.findByStatus("active");
-        List<Map<String, Object>> result = properties.stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(result);
+    public ResponseEntity<Map<String, Object>> getAllPgs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "id,desc") String[] sort) {
+
+        String sortField = sort[0];
+        Sort.Direction sortDirection = sort.length > 1 && sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable paging = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+
+        Page<Property> pageProps = propertyRepository.findByStatus("active", paging);
+        List<Map<String, Object>> content = pageProps.getContent().stream().map(this::toResponse).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", content);
+        response.put("currentPage", pageProps.getNumber());
+        response.put("totalItems", pageProps.getTotalElements());
+        response.put("totalPages", pageProps.getTotalPages());
+
+        return ResponseEntity.ok(response);
     }
 
     // GET /api/pgs/{id}

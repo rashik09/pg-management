@@ -27,8 +27,8 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [pgRes, inqRes] = await Promise.all([getPGs(), getInquiries()]);
-      setPgs(pgRes);
+      const [pgRes, inqRes] = await Promise.all([getPGs(0, 1000, 'id,desc'), getInquiries()]);
+      setPgs(pgRes.content || pgRes);
       setInquiries(inqRes);
       setSelectedPgs([]);
     } catch (e) {

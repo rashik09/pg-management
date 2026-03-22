@@ -9,7 +9,7 @@ export default function SearchBar({ activePGs, onSearch }) {
   const dropdownRef = useRef(null);
   const { showToast } = useToast();
 
-  const uniqueCities = [...new Set(activePGs.map(pg => pg.city.trim()))].filter(Boolean);
+  const uniqueCities = ['Mumbai', 'Bangalore', 'Pune', 'Delhi', 'Hyderabad', 'Chennai', 'Kolkata', 'Gurugram', 'Noida'];
   const matches = query ? uniqueCities.filter(c => c.toLowerCase().includes(query.toLowerCase())) : [];
 
   useEffect(() => {
