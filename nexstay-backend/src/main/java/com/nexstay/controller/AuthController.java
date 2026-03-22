@@ -1,8 +1,11 @@
 package com.nexstay.controller;
 
 import com.nexstay.entity.User;
+import com.nexstay.repository.InquiryRepository;
+import com.nexstay.repository.PropertyRepository;
 import com.nexstay.repository.UserRepository;
 import com.nexstay.service.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +19,11 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtService jwtService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JwtService jwtService;
+    @Autowired private InquiryRepository inquiryRepository;
+    @Autowired private PropertyRepository propertyRepository;
 
     // POST /api/auth/register
     @PostMapping("/register")
@@ -36,14 +36,12 @@ public class AuthController {
         if (name == null || email == null || password == null || role == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Missing parameters"));
         }
-
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(Map.of("message", "User already exists"));
         }
 
         User user = new User(name, email, passwordEncoder.encode(password), role);
         userRepository.save(user);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Successfully registered!"));
     }
 
@@ -72,6 +70,33 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    // GET /api/auth/me — profile + stats
+    @GetMapping("/me")
+    public ResponseEntity<?> getProfile(HttpServletRequest request) {
+        User user = (User) request.getAttribute("currentUser");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Not authenticated"));
+        }
+
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("id", user.getId());
+        profile.put("name", user.getName());
+        profile.put("email", user.getEmail());
+        profile.put("role", user.getRole());
+
+        if ("owner".equals(user.getRole())) {
+            long pgCount = propertyRepository.findByStatus("active").size();
+            long inquiryCount = inquiryRepository.findAllByOrderByIdAsc().size();
+            profile.put("pgs_posted", pgCount);
+            profile.put("total_inquiries_received", inquiryCount);
+        } else {
+            long inquiryCount = inquiryRepository.findByUserIdOrderByIdDesc(user.getId()).size();
+            profile.put("pgs_contacted", inquiryCount);
+        }
+
+        return ResponseEntity.ok(profile);
+    }
+
     // POST /api/auth/forgot-password
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> body) {
@@ -79,9 +104,6 @@ public class AuthController {
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
         }
-
-        // Standard production practice: Don't reveal if user exists for security
-        // For this demo, we'll just return success always if email is present
         return ResponseEntity.ok(Map.of("message", "Password reset link sent to " + email));
     }
 }

@@ -6,6 +6,7 @@ com\nexstay\config\SecurityConfig.class
 com\nexstay\repository\InquiryRepository.class
 com\nexstay\controller\PropertyController$1.class
 com\nexstay\NexstayApplication.class
+com\nexstay\config\SpaWebFilter.class
 com\nexstay\controller\AuthController.class
 com\nexstay\repository\FavoriteRepository.class
 com\nexstay\config\SecurityConfig$1.class

@@ -970,17 +970,160 @@ tr:hover td { background: rgba(108, 92, 231, 0.02); }
     to { opacity: 0; transform: translateY(-20px); }
 }
 
-/* === Responsive === */
+/* === Bottom Navigation Bar (Mobile Only) === */
+.bottom-nav {
+    display: none;
+}
+
 @media (max-width: 768px) {
-    .hero h1 { font-size: 2.2rem; }
-    .hero { padding: 9rem 1.5rem 3rem; }
-    .hero-stats { gap: 1rem; }
-    .hero-stat strong { font-size: 1.2rem; }
-    .pg-grid { grid-template-columns: 1fr; }
-    .pg-section { padding: 2.5rem 1rem; }
-    .filter-drawer-inner { flex-direction: column; }
-    .footer-content { flex-direction: column; gap: 2rem; }
-    .mobile-menu-btn { display: block; }
+    /* Show bottom nav on mobile */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border);
+        padding: 0.5rem 0;
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        box-shadow: 0 -4px 20px rgba(26, 29, 46, 0.08);
+        justify-content: space-around;
+        align-items: stretch;
+    }
+
+    .bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        flex: 1;
+        padding: 0.4rem 0.25rem;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        transition: color 0.2s ease;
+        min-height: 52px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .bottom-nav-item svg,
+    .bottom-nav-item i {
+        width: 22px;
+        height: 22px;
+        stroke-width: 1.8;
+    }
+    .bottom-nav-item.active {
+        color: var(--primary);
+    }
+    .bottom-nav-item.active svg,
+    .bottom-nav-item.active i {
+        stroke-width: 2.2;
+    }
+    .bottom-nav-item:active {
+        transform: scale(0.9);
+    }
+
+    /* Add space at bottom so content isn't hidden behind bottom nav */
+    body {
+        padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    }
+    /* Login/auth pages don't need bottom padding */
+    body.auth-body {
+        padding-bottom: 0 !important;
+    }
+
+    /* === Hero fixes === */
+    .hero {
+        padding: 7rem 1.25rem 2.5rem;
+    }
+    .hero h1 {
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+    }
+    .hero p {
+        font-size: 1rem;
+        margin-bottom: 1.75rem;
+    }
+    /* Hide hero stats on small phones — they clutter the screen */
+    .hero-stats {
+        display: none;
+    }
+    /* Stack the search bar on narrow screens */
+    .search-glass {
+        flex-direction: column;
+        border-radius: 16px;
+        padding: 0.75rem;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+    .search-input-wrapper {
+        padding: 0.25rem 0.5rem;
+    }
+    #searchBtn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.7rem 1rem;
+        border-radius: 10px;
+    }
+    #locationBtn {
+        display: none;
+    }
+
+    /* === PG Grid === */
+    .pg-grid {
+        grid-template-columns: 1fr;
+    }
+    .pg-section {
+        padding: 2rem 1rem;
+    }
+
+    /* === Filter drawer === */
+    .filter-drawer.open {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .filter-drawer-inner {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .filter-group {
+        min-width: unset;
+    }
+    .filter-actions {
+        flex-direction: row;
+        justify-content: stretch;
+    }
+    .filter-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* === Touch targets === */
+    .btn, .nav-link, .nav-item, .bottom-nav-item {
+        min-height: 44px;
+    }
+    .btn-sm {
+        min-height: 36px;
+    }
+
+    /* === Navbar === */
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+    }
     .nav-links {
         display: none;
         position: absolute;
@@ -989,9 +1132,71 @@ tr:hover td { background: rgba(108, 92, 231, 0.02); }
         right: 0;
         background: white;
         flex-direction: column;
-        padding: 1rem;
+        padding: 0.75rem;
         box-shadow: var(--shadow-lg);
         border-top: 1px solid var(--border);
+        z-index: 100;
+        gap: 0.25rem;
     }
     .nav-links.open { display: flex; }
+    .nav-links .nav-link,
+    .nav-links a {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+    }
+    /* User pill in mobile nav */
+    .user-pill { font-size: 0.8rem; }
+
+    /* === Footer === */
+    .footer {
+        padding: 2.5rem 1.25rem 1.5rem;
+    }
+    .footer-content {
+        flex-direction: column;
+        gap: 1.75rem;
+        text-align: center;
+    }
+    .footer-brand p { max-width: 100%; }
+    .footer-links {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    .footer-bottom {
+        padding: 1.25rem 0;
+    }
+
+    /* === Modals — full-width on mobile === */
+    .modal {
+        margin: 0.75rem;
+        max-width: calc(100vw - 1.5rem) !important;
+        padding: 1.5rem;
+    }
+
+    /* === Dashboard page === */
+    .fav-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .dash-table th, .dash-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    /* === Results toolbar === */
+    .results-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    .results-toolbar-left { width: 100%; justify-content: space-between; }
+    #filterToggleBtn { align-self: flex-start; }
+}
+
+/* === Tablet (640px–768px) — 2 column cards === */
+@media (min-width: 540px) and (max-width: 768px) {
+    .pg-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
